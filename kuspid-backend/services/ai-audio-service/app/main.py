@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import librosa
 import numpy as np
 import os
 import subprocess
@@ -47,7 +46,8 @@ async def analyze_full(request: AnalysisRequest):
             proxy_path
         ], check=True, capture_output=True)
         
-        # 3. Load lightweight audio
+        # 3. Load lightweight audio (Lazy Import for faster cold start)
+        import librosa
         y, sr = librosa.load(proxy_path, sr=16000)
         
         # 4. Analyze BPM

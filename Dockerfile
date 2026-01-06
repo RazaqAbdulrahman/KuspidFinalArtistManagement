@@ -1,20 +1,40 @@
-# Build Java services
+# Build Java services (Cache-optimized)
 FROM maven:3.9-eclipse-temurin-17 AS java-builder
 WORKDIR /build/kuspid-backend
+# Copy POMs only first for better caching
+COPY kuspid-backend/pom.xml .
+COPY kuspid-backend/gateway/pom.xml ./gateway/
+COPY kuspid-backend/services/auth-service/pom.xml ./services/auth-service/
+COPY kuspid-backend/services/beat-service/pom.xml ./services/beat-service/
+COPY kuspid-backend/services/artist-service/pom.xml ./services/artist-service/
+COPY kuspid-backend/services/analytics-service/pom.xml ./services/analytics-service/
+# Resolve dependencies offline
+RUN mvn dependency:go-offline -B -DskipTests
+# Copy source and build
 COPY kuspid-backend/ .
-RUN mvn clean package -DskipTests
+RUN mvn clean package -DskipTests -Dmaven.test.skip=true -Dmaven.main.skip=false -B
 
-# Build Python services
+# Build Python services (Smaller image, no-cache)
 FROM python:3.11-slim AS python-builder
 WORKDIR /app
 COPY kuspid-backend/services/ai-audio-service/requirements.txt ./ai-audio-service/
 COPY kuspid-backend/services/email-service/requirements.txt ./email-service/
-RUN pip install --user -r ./ai-audio-service/requirements.txt
-RUN pip install --user -r ./email-service/requirements.txt
+RUN pip install --user --no-cache-dir -r ./ai-audio-service/requirements.txt
+RUN pip install --user --no-cache-dir -r ./email-service/requirements.txt
 
-# Runtime
+# Runtime (Slimmer base if possible, clean apt)
 FROM eclipse-temurin:17-jre
-RUN apt-get update && apt-get install -y python3 supervisor curl libsndfile1 ffmpeg
+# Install dependencies and clean up in one layer
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \ 
+    supervisor \
+    curl \
+    libsndfile1 \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
 WORKDIR /app
 
 # Copy Java jars

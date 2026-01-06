@@ -55,17 +55,23 @@ public class BeatService {
             repository.save(beat);
 
             // 2. Trigger AI analysis
-            var analysis = aiClient.analyzeBeat(beat.getS3Key());
-            if (!"DEGRADED".equals(analysis.getStatus())) {
-                beat.setBpm(analysis.getBpm());
-                beat.setMusicalKey(analysis.getKey());
-                beat.setGenre(analysis.getGenre());
-                beat.setAnalysisStatus(Beat.AnalysisStatus.COMPLETED);
-            } else {
-                beat.setAnalysisStatus(Beat.AnalysisStatus.PENDING);
+            try {
+                var analysis = aiClient.analyzeBeat(beat.getS3Key());
+                if (!"DEGRADED".equals(analysis.getStatus())) {
+                    beat.setBpm(analysis.getBpm());
+                    beat.setMusicalKey(analysis.getKey());
+                    beat.setGenre(analysis.getGenre());
+                    beat.setAnalysisStatus(Beat.AnalysisStatus.COMPLETED);
+                } else {
+                    log.warn("AI Analysis degraded for beat {}", beatId);
+                    beat.setAnalysisStatus(Beat.AnalysisStatus.COMPLETED); // Treat as completed but without AI data
+                }
+            } catch (Exception aiEx) {
+                log.error("AI Analysis failed (non-critical): {}", aiEx.getMessage());
+                beat.setAnalysisStatus(Beat.AnalysisStatus.COMPLETED); // Still mark accessible, just no AI tags
             }
         } catch (Exception e) {
-            log.error("Error processing audio for beat {}: {}", beatId, e.getMessage());
+            log.error("Critical error processing audio for beat {}: {}", beatId, e.getMessage());
             beat.setAnalysisStatus(Beat.AnalysisStatus.FAILED);
         }
         repository.save(beat);
