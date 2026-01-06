@@ -1,0 +1,29 @@
+# Java
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+.mvn/wrapper/maven-wrapper.jar
+
+# Python
+**/__pycache__/
+**/*.pyc
+.venv/
+env/
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# Environment / Secret Files (CRITICAL)
+.env
+.env.local
+.env.*
+secrets.yaml
+render.yaml
+
+# OS
+.DS_Store
+Thumbs.db

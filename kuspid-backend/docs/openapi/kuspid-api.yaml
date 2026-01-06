@@ -1,0 +1,35 @@
+openapi: 3.0.3
+info:
+  title: Kuspid Platform API
+  description: Unified API for Beat Management, Artist Engagement, and Audio Intelligence
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local API Gateway
+
+paths:
+  /api/auth/register:
+    post:
+      summary: Register a new user
+      tags: [Auth]
+      responses:
+        200:
+          description: OK
+  /api/auth/login:
+    post:
+      summary: Login and get JWT
+      tags: [Auth]
+      responses:
+        200:
+          description: OK
+  /api/beats:
+    get:
+      summary: List all beats
+      tags: [Beat]
+    post:
+      summary: Upload a new beat
+      tags: [Beat]
+  /api/artists:
+    get:
+      summary: List all artists
+      tags: [Artist]

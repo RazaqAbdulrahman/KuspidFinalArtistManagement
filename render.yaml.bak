@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: kuspid-backend
+    env: docker
+    plan: free
+    dockerfilePath: Dockerfile
+    dockerContext: .
+    envVars:
+      - key: DB_HOST
+        value: dpg-d5eo0bf5r7bs73bvmc50-a.oregon-postgres.render.com
+      - key: DB_NAME
+        value: kuspid_db_primary
+      - key: DB_USER
+        value: kuspid_db_primary_user
+      - key: DB_PASSWORD
+        value: V688dwQnGSD4uiddFL50w4BZ0Uenf6Qv
+      - key: MINIO_ENDPOINT
+        value: http://minio:9000
+      - key: MINIO_ACCESS_KEY
+        value: minioadmin
+      - key: MINIO_SECRET_KEY
+        value: minioadmin
+      - key: SMTP_USER
+        value: kuspidmusic@gmail.com
+      - key: SMTP_PASSWORD
+        value: iiyqztakgltgmeyk
+      - key: JWT_SECRET_KEY
+        value: e83d8c7c9f2b1a0e9d8c7b6a5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b
