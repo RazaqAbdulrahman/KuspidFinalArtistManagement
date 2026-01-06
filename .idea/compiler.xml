@@ -10,6 +10,7 @@
         <module name="artist-service" />
         <module name="auth-service" />
         <module name="beat-service" />
+        <module name="kuspid-server" />
         <module name="gateway" />
       </profile>
     </annotationProcessing>
@@ -21,6 +22,7 @@
       <module name="auth-service" options="-parameters" />
       <module name="beat-service" options="-parameters" />
       <module name="gateway" options="-parameters" />
+      <module name="kuspid-server" options="-parameters" />
     </option>
   </component>
 </project>
