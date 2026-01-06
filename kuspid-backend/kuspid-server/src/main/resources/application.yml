@@ -1,0 +1,59 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: kuspid-server
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:kuspid_db_primary}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+# MinIO Config
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket: ${MINIO_BUCKET:beats}
+
+# Security Config
+application:
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET_KEY:e83d8c7c9f2b1a0e9d8c7b6a5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b}
+      expiration: 86400000 # a day
+      refresh-token:
+        expiration: 604800000 # 7 days
+
+# External Services
+services:
+  ai-audio:
+    url: http://localhost:8086
+  email:
+    url: http://localhost:8085
+
+# Resilience
+resilience4j.circuitbreaker:
+  instances:
+    aiService:
+      failureRateThreshold: 50
+      waitDurationInOpenState: 30s
+      slidingWindowSize: 10
