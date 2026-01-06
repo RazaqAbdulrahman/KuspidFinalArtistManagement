@@ -5,7 +5,7 @@ WORKDIR /build/kuspid-backend
 COPY kuspid-backend/pom.xml .
 COPY kuspid-backend/kuspid-server/pom.xml ./kuspid-server/
 # Resolve dependencies
-RUN mvn dependency:go-offline -B -DskipTests
+RUN mvn -f kuspid-server/pom.xml dependency:go-offline -B -DskipTests
 # Copy source
 COPY kuspid-backend/ .
 # Build only the monolith module
