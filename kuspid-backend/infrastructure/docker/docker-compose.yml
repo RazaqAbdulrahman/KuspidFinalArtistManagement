@@ -4,13 +4,16 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_DB: kuspid
+      POSTGRES_DB: kuspid_db_primary
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
-    volumes:
-      - ./postgres/init-schemas.sql:/docker-entrypoint-initdb.d/init-schemas.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   minio:
     image: minio/minio
@@ -22,12 +25,24 @@ services:
       - "9001:9001"
     command: server /data --console-address ":9001"
 
-  gateway:
+  kuspid-server:
     build:
-      context: ../../
+      context: ../../../
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    environment:
+      - DB_HOST=postgres
+      - DB_NAME=kuspid_db_primary
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MAIL_HOST=smtp.gmail.com
+      - MAIL_PORT=587
     depends_on:
-      - postgres
-      - minio
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started

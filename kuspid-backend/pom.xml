@@ -15,6 +15,7 @@
         <module>services/beat-service</module>
         <module>services/artist-service</module>
         <module>services/analytics-service</module>
+        <module>services/email-service</module>
         <module>kuspid-server</module>
     </modules>
 

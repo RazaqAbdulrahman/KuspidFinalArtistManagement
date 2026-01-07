@@ -7,6 +7,7 @@
     <file url="file://$PROJECT_DIR$/kuspid-backend/services/artist-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/kuspid-backend/services/auth-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/kuspid-backend/services/beat-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/kuspid-backend/services/email-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/kuspid-backend/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/kuspid-backend/src/main/resources" charset="UTF-8" />
   </component>

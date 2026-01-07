@@ -1,8 +1,8 @@
 #!/bin/bash
 
-SERVICES=("gateway:8080" "auth-service:8081" "beat-service:8082" "artist-service:8083" "analytics-service:8084")
+SERVICES=("kuspid-server:8080")
 
-echo "Checking Kuzpid Microservices Health..."
+echo "Checking Kuspid Monolith Health..."
 
 for service in "${SERVICES[@]}"; do
     NAME=$(echo $service | cut -d':' -f1)
