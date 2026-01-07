@@ -1,6 +1,5 @@
 package com.kuspid.beat.service;
 
-import com.kuspid.beat.client.AiClient;
 import com.kuspid.beat.model.Beat;
 import com.kuspid.beat.repository.BeatRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,9 +29,6 @@ class BeatServiceTest {
 
     @Mock
     private StorageService storageService;
-
-    @Mock
-    private AiClient aiClient;
 
     @InjectMocks
     @Spy

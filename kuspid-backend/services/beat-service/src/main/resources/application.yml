@@ -27,13 +27,4 @@ management:
         include: health,info,metrics
 
 
-services:
-  ai-audio:
-    url: ${AI_SERVICE_URL:http://localhost:8086}
 
-resilience4j.circuitbreaker:
-  instances:
-    aiService:
-      failureRateThreshold: 50
-      waitDurationInOpenState: 30s
-      slidingWindowSize: 10

@@ -1,6 +1,5 @@
 package com.kuspid.beat.service;
 
-import com.kuspid.beat.client.AiClient;
 import com.kuspid.beat.model.Beat;
 import com.kuspid.beat.repository.BeatRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +19,6 @@ public class BeatService {
 
     private final BeatRepository repository;
     private final StorageService storageService;
-    private final AiClient aiClient;
 
     public Beat uploadBeat(String title, String artistId, MultipartFile file) {
         String s3Key = storageService.uploadFile(file);
@@ -54,22 +52,8 @@ public class BeatService {
             beat.setWaveformKey(waveformKey);
             repository.save(beat);
 
-            // 2. Trigger AI analysis
-            try {
-                var analysis = aiClient.analyzeBeat(beat.getS3Key());
-                if (!"DEGRADED".equals(analysis.getStatus())) {
-                    beat.setBpm(analysis.getBpm());
-                    beat.setMusicalKey(analysis.getKey());
-                    beat.setGenre(analysis.getGenre());
-                    beat.setAnalysisStatus(Beat.AnalysisStatus.COMPLETED);
-                } else {
-                    log.warn("AI Analysis degraded for beat {}", beatId);
-                    beat.setAnalysisStatus(Beat.AnalysisStatus.COMPLETED); // Treat as completed but without AI data
-                }
-            } catch (Exception aiEx) {
-                log.error("AI Analysis failed (non-critical): {}", aiEx.getMessage());
-                beat.setAnalysisStatus(Beat.AnalysisStatus.COMPLETED); // Still mark accessible, just no AI tags
-            }
+            // 2. No AI Analysis
+            beat.setAnalysisStatus(Beat.AnalysisStatus.COMPLETED);
         } catch (Exception e) {
             log.error("Critical error processing audio for beat {}: {}", beatId, e.getMessage());
             beat.setAnalysisStatus(Beat.AnalysisStatus.FAILED);

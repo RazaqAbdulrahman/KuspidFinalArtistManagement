@@ -31,14 +31,6 @@ public class GatewayApplication {
                                                 .filters(f -> f.filter(
                                                                 authFilter.apply(new JwtAuthenticationFilter.Config())))
                                                 .uri("http://localhost:8084"))
-                                .route("email-service", r -> r.path("/api/emails/**")
-                                                .filters(f -> f.filter(
-                                                                authFilter.apply(new JwtAuthenticationFilter.Config())))
-                                                .uri("http://localhost:8085"))
-                                .route("ai-service", r -> r.path("/api/ai/**")
-                                                .filters(f -> f.filter(
-                                                                authFilter.apply(new JwtAuthenticationFilter.Config())))
-                                                .uri("http://localhost:8086"))
                                 .build();
         }
 }

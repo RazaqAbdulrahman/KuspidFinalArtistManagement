@@ -43,17 +43,4 @@ application:
       refresh-token:
         expiration: 604800000 # 7 days
 
-# External Services
-services:
-  ai-audio:
-    url: http://localhost:8086
-  email:
-    url: http://localhost:8085
 
-# Resilience
-resilience4j.circuitbreaker:
-  instances:
-    aiService:
-      failureRateThreshold: 50
-      waitDurationInOpenState: 30s
-      slidingWindowSize: 10

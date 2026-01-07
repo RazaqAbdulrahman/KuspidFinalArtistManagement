@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SERVICES=("gateway:8080" "auth-service:8081" "beat-service:8082" "artist-service:8083" "analytics-service:8084" "email-service:8085" "ai-audio-service:8086")
+SERVICES=("gateway:8080" "auth-service:8081" "beat-service:8082" "artist-service:8083" "analytics-service:8084")
 
 echo "Checking Kuzpid Microservices Health..."
 
