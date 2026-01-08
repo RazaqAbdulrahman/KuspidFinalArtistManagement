@@ -27,6 +27,13 @@ public class Beat {
     private String musicalKey;
     private String s3Key;
     private String waveformKey;
+
+    @Transient
+    private String beatUrl;
+
+    @Transient
+    private String waveformUrl;
+
     private String fileName;
     private Long fileSize;
 

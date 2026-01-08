@@ -8,5 +8,7 @@ import java.util.List;
 public interface EventRepository extends JpaRepository<Event, Long> {
     List<Event> findByResourceId(String resourceId);
 
-    long countByEventTypeAndResourceId(String eventType, String resourceId);
+    long countByEventTypeAndResourceId(Event.EventType eventType, String resourceId);
+
+    long countByEventType(Event.EventType eventType);
 }

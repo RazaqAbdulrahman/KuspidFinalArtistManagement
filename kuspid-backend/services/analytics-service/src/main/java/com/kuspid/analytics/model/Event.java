@@ -20,11 +20,13 @@ public class Event {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String eventType; // PLAY, DOWNLOAD, SEARCH
+    @Enumerated(EnumType.STRING)
+    private EventType eventType;
+
     private String resourceId; // beatId, artistId
     private String userId;
 
-    @Column(columnDefinition = "JSONB")
+    @Column(columnDefinition = "TEXT") // JSONB in Postgres, keeping simplified for now
     private String metadata;
 
     private LocalDateTime createdAt;
@@ -32,5 +34,9 @@ public class Event {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+    }
+
+    public enum EventType {
+        PLAY, DOWNLOAD, SHARE, PROFILE_VIEW, APP_OPEN
     }
 }

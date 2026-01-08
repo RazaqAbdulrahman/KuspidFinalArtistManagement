@@ -36,8 +36,19 @@ public class ArtistController {
         return ResponseEntity.ok(service.updateArtist(id, artist));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteArtist(@PathVariable Long id) {
+        service.deleteArtist(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{id}/notes")
     public ResponseEntity<Note> addNote(@PathVariable Long id, @RequestBody String content) {
         return ResponseEntity.ok(service.addNote(id, content));
+    }
+
+    @GetMapping("/{id}/notes")
+    public ResponseEntity<List<Note>> getArtistNotes(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getNotesByArtistId(id));
     }
 }

@@ -1,109 +1,94 @@
 package com.kuspid.beat.service;
 
-import io.minio.*;
-import io.minio.http.Method;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import jakarta.annotation.PostConstruct;
-import java.io.InputStream;
-import java.nio.file.Files;
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
+/**
+ * Production-hardened Cloudinary implementation.
+ * Leveraging Netflix-style error propagation and logging.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class StorageService {
+public class StorageService implements AssetStorageProvider {
 
-    private final MinioClient minioClient;
+    private final Cloudinary cloudinary;
 
-    @Value("${minio.bucket}")
-    private String bucketName;
-
-    @PostConstruct
-    public void init() {
+    @Override
+    public String uploadAsset(MultipartFile file) {
         try {
-            boolean found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
-            if (!found) {
-                minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
-                log.info("Created MinIO bucket: {}", bucketName);
-            } else {
-                log.info("MinIO bucket '{}' already exists.", bucketName);
-            }
-        } catch (Exception e) {
-            log.error("Error initializing MinIO bucket", e);
-            // Don't throw exception here to allow app to start even if MinIO is momentarily
-            // down,
-            // but functionality will be impaired.
+            log.info("Initiating upload for asset: {} size: {}", file.getOriginalFilename(), file.getSize());
+
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
+                    ObjectUtils.asMap(
+                            "resource_type", "auto",
+                            "folder", "kuspid/beats",
+                            "public_id", UUID.randomUUID().toString()));
+
+            String publicId = (String) uploadResult.get("public_id");
+            log.info("Asset successfully persisted. PublicID: {}", publicId);
+            return publicId;
+        } catch (IOException e) {
+            log.error("IO Failure during Cloudinary egress. Payload: {}", file.getOriginalFilename(), e);
+            throw new RuntimeException("Media persistence failure", e);
         }
     }
 
+    @Override
+    public String uploadAsset(File file, String folder) {
+        try {
+            log.info("Persisting local binary to Cloudinary. Path: {} -> Folder: {}", file.getAbsolutePath(), folder);
+
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(file,
+                    ObjectUtils.asMap(
+                            "resource_type", "auto",
+                            "folder", folder));
+
+            return (String) uploadResult.get("public_id");
+        } catch (IOException e) {
+            log.error("Fatal exception during local file migration to Cloudinary", e);
+            throw new RuntimeException("Secondary storage synchronization failed", e);
+        }
+    }
+
+    @Override
+    public String getAssetUrl(String assetId) {
+        // Cloudinary handles delivery via their global CDN
+        // We ensure we use the secure version
+        return cloudinary.url().secure(true).generate(assetId);
+    }
+
+    @Override
+    public void deleteAsset(String assetId) {
+        try {
+            log.info("Purging asset from CDN and storage. ID: {}", assetId);
+            cloudinary.uploader().destroy(assetId, ObjectUtils.emptyMap());
+        } catch (IOException e) {
+            log.warn("Non-critical cleanup failure for asset: {}. Metadata might be orphaned.", assetId, e);
+        }
+    }
+
+    // Legacy support for methods used in BeatService before refactor
     public String uploadFile(MultipartFile file) {
-        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-        try (InputStream is = file.getInputStream()) {
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(fileName)
-                            .stream(is, file.getSize(), -1)
-                            .contentType(file.getContentType())
-                            .build());
-            return fileName;
-        } catch (Exception e) {
-            log.error("Error uploading file to MinIO", e);
-            throw new RuntimeException("Upload failed", e);
-        }
+        return uploadAsset(file);
     }
 
-    public String uploadFile(java.io.File file, String key) {
-        try (java.io.InputStream is = new java.io.FileInputStream(file)) {
-            String contentType = Files.probeContentType(file.toPath());
-            if (contentType == null) {
-                contentType = "application/octet-stream";
-            }
-
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(key)
-                            .stream(is, file.length(), -1)
-                            .contentType(contentType)
-                            .build());
-            return key;
-        } catch (Exception e) {
-            log.error("Error uploading file to MinIO", e);
-            throw new RuntimeException("File upload failed", e);
-        }
-    }
-
-    public String getFileUrl(String fileName) {
-        try {
-            return minioClient.getPresignedObjectUrl(
-                    GetPresignedObjectUrlArgs.builder()
-                            .method(Method.GET)
-                            .bucket(bucketName)
-                            .object(fileName)
-                            .expiry(7, TimeUnit.DAYS) // Links valid for 7 days
-                            .build());
-        } catch (Exception e) {
-            log.error("Error generating presigned URL for file: " + fileName, e);
-            return null;
-        }
+    public String uploadFile(File file, String key) {
+        // In Cloudinary, the 'key' is the public_id. We strip folder if it exists or
+        // use it.
+        return uploadAsset(file, "kuspid/waveforms");
     }
 
     public void deleteFile(String fileName) {
-        try {
-            minioClient.removeObject(
-                    RemoveObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(fileName)
-                            .build());
-        } catch (Exception e) {
-            log.error("Error deleting file from MinIO", e);
-        }
+        deleteAsset(fileName);
     }
 }

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -21,6 +22,7 @@ public class BeatService {
     private final StorageService storageService;
 
     public Beat uploadBeat(String title, String artistId, MultipartFile file) {
+        log.info("Uploading beat '{}' for artist {}", title, artistId);
         String s3Key = storageService.uploadFile(file);
 
         Beat beat = Beat.builder()
@@ -49,16 +51,20 @@ public class BeatService {
         try {
             // 1. Generate Waveform using FFmpeg
             String waveformKey = generateWaveform(file, beat.getS3Key());
-            beat.setWaveformKey(waveformKey);
-            repository.save(beat);
+            if (waveformKey != null) {
+                beat.setWaveformKey(waveformKey);
+            } else {
+                log.warn("Waveform generation returned null for beat {}", beatId);
+            }
 
-            // 2. No AI Analysis
+            // 2. Future: AI Analysis (BPM, Key, Genre) placeholder
             beat.setAnalysisStatus(Beat.AnalysisStatus.COMPLETED);
+            repository.save(beat);
         } catch (Exception e) {
             log.error("Critical error processing audio for beat {}: {}", beatId, e.getMessage());
             beat.setAnalysisStatus(Beat.AnalysisStatus.FAILED);
+            repository.save(beat);
         }
-        repository.save(beat);
     }
 
     private String generateWaveform(MultipartFile file, String s3Key) {
@@ -77,38 +83,79 @@ public class BeatService {
                     "-vframes", "1",
                     tempOutput.getAbsolutePath());
 
+            pb.redirectErrorStream(true); // Merge stderr into stdout to see logs if needed
             Process process = pb.start();
             int exitCode = process.waitFor();
 
             if (exitCode == 0) {
                 String waveformS3Key = s3Key + ".waveform.png";
                 return storageService.uploadFile(tempOutput, waveformS3Key);
+            } else {
+                log.error("FFmpeg exited with error code: {}", exitCode);
             }
         } catch (Exception e) {
             log.error("Failed to generate waveform: {}", e.getMessage());
         } finally {
-            if (tempInput != null)
+            if (tempInput != null && tempInput.exists())
                 tempInput.delete();
-            if (tempOutput != null)
+            if (tempOutput != null && tempOutput.exists())
                 tempOutput.delete();
         }
-        return null;
+        return null; // Return null on failure instead of crashing
     }
 
     public List<Beat> getAllBeats() {
-        return repository.findAll();
+        return repository.findAll().stream()
+                .map(this::enrichBeatUrl)
+                .toList();
     }
 
     public Beat getBeatById(Long id) {
-        return repository.findById(id).orElseThrow();
+        return repository.findById(id)
+                .map(this::enrichBeatUrl)
+                .orElseThrow(() -> new RuntimeException("Beat not found with id: " + id));
+    }
+
+    // Helper to generate CDN URLs for the client
+    private Beat enrichBeatUrl(Beat beat) {
+        if (beat.getS3Key() != null) {
+            beat.setBeatUrl(storageService.getAssetUrl(beat.getS3Key()));
+        }
+        if (beat.getWaveformKey() != null) {
+            beat.setWaveformUrl(storageService.getAssetUrl(beat.getWaveformKey()));
+        }
+        return beat;
+    }
+
+    @Transactional
+    public Beat updateBeat(Long id, Beat beatDetails) {
+        Beat beat = getBeatById(id);
+        if (beatDetails.getTitle() != null)
+            beat.setTitle(beatDetails.getTitle());
+        if (beatDetails.getGenre() != null)
+            beat.setGenre(beatDetails.getGenre());
+        if (beatDetails.getBpm() != null)
+            beat.setBpm(beatDetails.getBpm());
+        if (beatDetails.getMusicalKey() != null)
+            beat.setMusicalKey(beatDetails.getMusicalKey());
+
+        return enrichBeatUrl(repository.save(beat));
     }
 
     public void deleteBeat(Long id) {
-        Beat beat = getBeatById(id);
-        storageService.deleteFile(beat.getS3Key());
-        if (beat.getWaveformKey() != null) {
-            storageService.deleteFile(beat.getWaveformKey());
+        Beat beat = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Beat not found with id: " + id));
+
+        try {
+            storageService.deleteFile(beat.getS3Key());
+            if (beat.getWaveformKey() != null) {
+                storageService.deleteFile(beat.getWaveformKey());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to delete files from S3 for beat {}: {}", id, e.getMessage());
+            // Continue to delete metadata
         }
+
         repository.delete(beat);
     }
 }

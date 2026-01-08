@@ -34,6 +34,11 @@ public class BeatController {
         return ResponseEntity.ok(service.getBeatById(id));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<Beat> updateBeat(@PathVariable Long id, @RequestBody Beat beat) {
+        return ResponseEntity.ok(service.updateBeat(id, beat));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBeat(@PathVariable Long id) {
         service.deleteBeat(id);

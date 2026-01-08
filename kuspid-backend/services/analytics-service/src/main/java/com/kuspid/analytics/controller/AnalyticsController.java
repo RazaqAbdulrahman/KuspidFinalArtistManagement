@@ -3,6 +3,7 @@ package com.kuspid.analytics.controller;
 import com.kuspid.analytics.model.Event;
 import com.kuspid.analytics.service.AnalyticsService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,7 +18,7 @@ public class AnalyticsController {
 
     @PostMapping("/events")
     public ResponseEntity<Event> logEvent(@RequestBody Event event) {
-        return ResponseEntity.ok(service.logEvent(event));
+        return new ResponseEntity<>(service.logEvent(event), HttpStatus.CREATED);
     }
 
     @GetMapping("/beats/{id}/stats")

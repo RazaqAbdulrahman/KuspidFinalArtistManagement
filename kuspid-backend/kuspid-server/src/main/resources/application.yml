@@ -38,12 +38,11 @@ management:
       exposure:
         include: health,info,metrics
 
-# MinIO Config
-minio:
-  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
-  access-key: ${MINIO_ACCESS_KEY:kuspidadmin}
-  secret-key: ${MINIO_SECRET_KEY:kuspidsecret123}
-  bucket: ${MINIO_BUCKET:beats}
+# Cloudinary Config
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:dcjo4leif}
+  api-key: ${CLOUDINARY_API_KEY:137657341713195}
+  api-secret: ${CLOUDINARY_API_SECRET:ERPWAGbm-R_rCl6rCotYjByvsEA}
 
 # Security Config
 application:
@@ -53,5 +52,12 @@ application:
       expiration: 86400000 # a day
       refresh-token:
         expiration: 604800000 # 7 days
+
+# External Service URLs
+services:
+  email:
+    url: ${EMAIL_SERVICE_URL:http://localhost:8080}
+  ai-audio:
+    url: ${AI_SERVICE_URL:http://localhost:5000}
 
 
