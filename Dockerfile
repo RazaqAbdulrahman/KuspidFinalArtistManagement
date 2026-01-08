@@ -10,8 +10,8 @@ COPY kuspid-backend/services/beat-service/pom.xml ./services/beat-service/
 COPY kuspid-backend/services/artist-service/pom.xml ./services/artist-service/
 COPY kuspid-backend/services/analytics-service/pom.xml ./services/analytics-service/
 COPY kuspid-backend/services/email-service/pom.xml ./services/email-service/
-# Resolve dependencies
-RUN mvn -f kuspid-server/pom.xml dependency:go-offline -B -DskipTests
+# Resolve dependencies (from root to ensure module linkage)
+RUN mvn dependency:go-offline -B -DskipTests
 # Copy source
 COPY kuspid-backend/ .
 # Build only the monolith module
