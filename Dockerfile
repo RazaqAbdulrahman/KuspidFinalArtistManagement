@@ -4,6 +4,12 @@ WORKDIR /build/kuspid-backend
 # Copy POMs
 COPY kuspid-backend/pom.xml .
 COPY kuspid-backend/kuspid-server/pom.xml ./kuspid-server/
+COPY kuspid-backend/gateway/pom.xml ./gateway/
+COPY kuspid-backend/services/auth-service/pom.xml ./services/auth-service/
+COPY kuspid-backend/services/beat-service/pom.xml ./services/beat-service/
+COPY kuspid-backend/services/artist-service/pom.xml ./services/artist-service/
+COPY kuspid-backend/services/analytics-service/pom.xml ./services/analytics-service/
+COPY kuspid-backend/services/email-service/pom.xml ./services/email-service/
 # Resolve dependencies
 RUN mvn -f kuspid-server/pom.xml dependency:go-offline -B -DskipTests
 # Copy source
