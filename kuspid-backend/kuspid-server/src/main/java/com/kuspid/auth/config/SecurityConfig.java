@@ -3,7 +3,9 @@ package com.kuspid.auth.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -28,9 +30,13 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
+                                .cors(Customizer.withDefaults()) // Directly use the source bean below
                                 .csrf(AbstractHttpConfigurer::disable)
-                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                                 .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Explicitly
+                                                                                                        // permit
+                                                                                                        // OPTIONS
+                                                                                                        // preflight
                                                 .requestMatchers("/api/auth/**").permitAll()
                                                 .requestMatchers("/actuator/health").permitAll()
                                                 .anyRequest().authenticated())
@@ -45,11 +51,19 @@ public class SecurityConfig {
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();
-                configuration.setAllowedOriginPatterns(Collections.singletonList("*"));
+                // Allow common frontend development origins
+                configuration.setAllowedOriginPatterns(Arrays.asList(
+                                "http://localhost:8080",
+                                "http://localhost:5173",
+                                "http://localhost:3000",
+                                "*"));
                 configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-                configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Auth-Token"));
+                configuration.setAllowedHeaders(
+                                Arrays.asList("Authorization", "Content-Type", "X-Auth-Token", "Origin", "Accept"));
                 configuration.setExposedHeaders(Collections.singletonList("X-Auth-Token"));
                 configuration.setAllowCredentials(true);
+                configuration.setMaxAge(3600L); // Cache preflight for 1 hour
+
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 source.registerCorsConfiguration("/**", configuration);
                 return source;
