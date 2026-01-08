@@ -1,0 +1,13 @@
+package com.kuspid.beat;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableAsync;
+
+@SpringBootApplication
+@EnableAsync
+public class BeatApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(BeatApplication.class, args);
+    }
+}
