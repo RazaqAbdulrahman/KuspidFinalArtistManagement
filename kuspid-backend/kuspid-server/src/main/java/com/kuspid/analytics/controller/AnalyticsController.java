@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -28,5 +29,15 @@ public class AnalyticsController {
     @GetMapping("/dashboard")
     public ResponseEntity<Map<String, Object>> getDashboardData() {
         return ResponseEntity.ok(service.getDashboardData());
+    }
+
+    @GetMapping("/plays-trend")
+    public ResponseEntity<List<Map<String, Object>>> getPlaysTrend() {
+        return ResponseEntity.ok(service.getPlaysTrend());
+    }
+
+    @GetMapping("/genre-distribution")
+    public ResponseEntity<List<Map<String, Object>>> getGenreDistribution() {
+        return ResponseEntity.ok(service.getGenreDistribution());
     }
 }

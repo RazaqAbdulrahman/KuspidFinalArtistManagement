@@ -36,7 +36,7 @@ public class ArtistController {
         return ResponseEntity.ok(service.updateArtist(id, artist));
     }
 
-    @PostMapping("/{id}/notes")
+    @PostMapping(value = "/{id}/notes", consumes = "text/plain")
     public ResponseEntity<Note> addNote(@PathVariable Long id, @RequestBody String content) {
         return ResponseEntity.ok(service.addNote(id, content));
     }

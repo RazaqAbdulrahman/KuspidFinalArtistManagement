@@ -22,14 +22,21 @@ public class Beat {
 
     private String title;
     private String artistId;
+    @Transient
+    private String artistName;
     private String genre;
     private Integer bpm;
     private String musicalKey;
     private String assetId;
     private String waveformKey;
+    private Long plays = 0L;
+    private String duration;
 
     @Transient
     private String beatUrl;
+
+    @Transient
+    private String fileUrl;
 
     @Transient
     private String waveformUrl;

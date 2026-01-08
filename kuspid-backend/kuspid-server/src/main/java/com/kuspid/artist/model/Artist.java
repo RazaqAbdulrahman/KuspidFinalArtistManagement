@@ -26,12 +26,16 @@ public class Artist {
     private String phone;
     private String genre;
     private String bio;
+    private String imageUrl;
 
     @Enumerated(EnumType.STRING)
     private Status status;
 
     @OneToMany(mappedBy = "artist", cascade = CascadeType.ALL)
     private List<Note> notes;
+
+    @Transient
+    private Long beatCount;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

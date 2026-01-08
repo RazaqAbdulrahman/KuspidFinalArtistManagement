@@ -9,4 +9,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     List<Event> findByResourceId(String resourceId);
 
     long countByEventTypeAndResourceId(String eventType, String resourceId);
+
+    long countByEventType(String eventType);
 }

@@ -1,5 +1,6 @@
 package com.kuspid.beat.service;
 
+import com.kuspid.artist.repository.ArtistRepository;
 import com.kuspid.beat.client.AiClient;
 import com.kuspid.beat.model.Beat;
 import com.kuspid.beat.repository.BeatRepository;
@@ -21,6 +22,7 @@ public class BeatService {
     private final BeatRepository repository;
     private final StorageService storageService;
     private final AiClient aiClient;
+    private final ArtistRepository artistRepository;
 
     public Beat uploadBeat(String title, String artistId, MultipartFile file) {
         String cloudKey = storageService.uploadFile(file);
@@ -125,10 +127,21 @@ public class BeatService {
 
     private Beat enrichBeatUrl(Beat beat) {
         if (beat.getAssetId() != null) {
-            beat.setBeatUrl(storageService.getAssetUrl(beat.getAssetId()));
+            String url = storageService.getAssetUrl(beat.getAssetId());
+            beat.setBeatUrl(url);
+            beat.setFileUrl(url);
         }
         if (beat.getWaveformKey() != null) {
             beat.setWaveformUrl(storageService.getAssetUrl(beat.getWaveformKey()));
+        }
+        if (beat.getArtistId() != null) {
+            try {
+                Long artistId = Long.parseLong(beat.getArtistId());
+                artistRepository.findById(artistId).ifPresent(artist -> {
+                    beat.setArtistName(artist.getName());
+                });
+            } catch (NumberFormatException ignored) {
+            }
         }
         return beat;
     }
