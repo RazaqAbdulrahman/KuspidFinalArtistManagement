@@ -19,15 +19,15 @@ public class AiClient {
     private String aiServiceUrl;
 
     @CircuitBreaker(name = "aiService", fallbackMethod = "fallbackAnalyze")
-    public AiResponse analyzeBeat(String s3Key) {
-        log.info("Requesting analysis for {}", s3Key);
+    public AiResponse analyzeBeat(String assetId) {
+        log.info("Requesting analysis for {}", assetId);
         String url = aiServiceUrl + "/api/ai/analyze/full";
-        AnalysisRequest request = new AnalysisRequest(s3Key);
+        AnalysisRequest request = new AnalysisRequest(assetId);
         return restTemplate.postForObject(url, request, AiResponse.class);
     }
 
-    public AiResponse fallbackAnalyze(String s3Key, Throwable t) {
-        log.warn("AI Service unavailable for {}. Error: {}", s3Key, t.getMessage());
+    public AiResponse fallbackAnalyze(String assetId, Throwable t) {
+        log.warn("AI Service unavailable for {}. Error: {}", assetId, t.getMessage());
         AiResponse response = new AiResponse();
         response.setStatus("DEGRADED");
         return response;
@@ -36,7 +36,7 @@ public class AiClient {
     @Data
     @RequiredArgsConstructor
     public static class AnalysisRequest {
-        private final String s3Key;
+        private final String assetId;
     }
 
     @Data

@@ -1,69 +1,83 @@
 package com.kuspid.beat.service;
 
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
-import io.minio.RemoveObjectArgs;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.InputStream;
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class StorageService {
+public class StorageService implements AssetStorageProvider {
 
-    private final MinioClient minioClient;
+    private final Cloudinary cloudinary;
 
-    @Value("${minio.bucket}")
-    private String bucketName;
-
-    public String uploadFile(MultipartFile file) {
-        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-        try (InputStream is = file.getInputStream()) {
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(fileName)
-                            .stream(is, file.getSize(), -1)
-                            .contentType(file.getContentType())
-                            .build());
-            return fileName;
-        } catch (Exception e) {
-            log.error("Error uploading file to MinIO", e);
+    @Override
+    public String uploadAsset(MultipartFile file) {
+        try {
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
+                    ObjectUtils.asMap(
+                            "resource_type", "auto",
+                            "folder", "kuspid/beats",
+                            "public_id", UUID.randomUUID().toString()));
+            return (String) uploadResult.get("public_id");
+        } catch (IOException e) {
+            log.error("Cloudinary upload failed", e);
             throw new RuntimeException("Upload failed", e);
         }
     }
 
-    public String uploadFile(java.io.File file, String key) {
-        try (java.io.InputStream is = new java.io.FileInputStream(file)) {
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(key)
-                            .stream(is, file.length(), -1)
-                            .contentType("image/png")
-                            .build());
-            return key;
-        } catch (Exception e) {
-            log.error("Error uploading waveform to MinIO", e);
-            throw new RuntimeException("Waveform upload failed", e);
+    @Override
+    public String uploadAsset(File file, String folder) {
+        try {
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(file,
+                    ObjectUtils.asMap(
+                            "resource_type", "auto",
+                            "folder", folder));
+            return (String) uploadResult.get("public_id");
+        } catch (IOException e) {
+            log.error("Cloudinary file upload failed", e);
+            throw new RuntimeException("File upload failed", e);
         }
     }
 
-    public void deleteFile(String fileName) {
+    @Override
+    public String getAssetUrl(String assetId) {
+        if (assetId == null)
+            return null;
+        return cloudinary.url().secure(true).generate(assetId);
+    }
+
+    @Override
+    public void deleteAsset(String assetId) {
         try {
-            minioClient.removeObject(
-                    RemoveObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(fileName)
-                            .build());
-        } catch (Exception e) {
-            log.error("Error deleting file from MinIO", e);
+            cloudinary.uploader().destroy(assetId, ObjectUtils.emptyMap());
+        } catch (IOException e) {
+            log.warn("Cloudinary delete failed for: {}", assetId, e);
         }
+    }
+
+    // Legacy support
+    public String uploadFile(MultipartFile file) {
+        return uploadAsset(file);
+    }
+
+    public String uploadFile(File file, String key) {
+        return uploadAsset(file, "kuspid/waveforms");
+    }
+
+    public String getFileUrl(String fileName) {
+        return getAssetUrl(fileName);
+    }
+
+    public void deleteFile(String fileName) {
+        deleteAsset(fileName);
     }
 }

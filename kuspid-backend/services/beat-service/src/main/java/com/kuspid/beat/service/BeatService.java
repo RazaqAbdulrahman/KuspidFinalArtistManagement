@@ -23,12 +23,12 @@ public class BeatService {
 
     public Beat uploadBeat(String title, String artistId, MultipartFile file) {
         log.info("Uploading beat '{}' for artist {}", title, artistId);
-        String s3Key = storageService.uploadFile(file);
+        String cloudKey = storageService.uploadFile(file);
 
         Beat beat = Beat.builder()
                 .title(title)
                 .artistId(artistId)
-                .s3Key(s3Key)
+                .assetId(cloudKey)
                 .fileName(file.getOriginalFilename())
                 .fileSize(file.getSize())
                 .analysisStatus(Beat.AnalysisStatus.PROCESSING)
@@ -50,7 +50,7 @@ public class BeatService {
 
         try {
             // 1. Generate Waveform using FFmpeg
-            String waveformKey = generateWaveform(file, beat.getS3Key());
+            String waveformKey = generateWaveform(file, beat.getAssetId());
             if (waveformKey != null) {
                 beat.setWaveformKey(waveformKey);
             } else {
@@ -67,7 +67,7 @@ public class BeatService {
         }
     }
 
-    private String generateWaveform(MultipartFile file, String s3Key) {
+    private String generateWaveform(MultipartFile file, String cloudKey) {
         File tempInput = null;
         File tempOutput = null;
         try {
@@ -88,8 +88,8 @@ public class BeatService {
             int exitCode = process.waitFor();
 
             if (exitCode == 0) {
-                String waveformS3Key = s3Key + ".waveform.png";
-                return storageService.uploadFile(tempOutput, waveformS3Key);
+                String waveformCloudKey = cloudKey + ".waveform.png";
+                return storageService.uploadFile(tempOutput, waveformCloudKey);
             } else {
                 log.error("FFmpeg exited with error code: {}", exitCode);
             }
@@ -118,8 +118,8 @@ public class BeatService {
 
     // Helper to generate CDN URLs for the client
     private Beat enrichBeatUrl(Beat beat) {
-        if (beat.getS3Key() != null) {
-            beat.setBeatUrl(storageService.getAssetUrl(beat.getS3Key()));
+        if (beat.getAssetId() != null) {
+            beat.setBeatUrl(storageService.getAssetUrl(beat.getAssetId()));
         }
         if (beat.getWaveformKey() != null) {
             beat.setWaveformUrl(storageService.getAssetUrl(beat.getWaveformKey()));
@@ -147,12 +147,12 @@ public class BeatService {
                 .orElseThrow(() -> new RuntimeException("Beat not found with id: " + id));
 
         try {
-            storageService.deleteFile(beat.getS3Key());
+            storageService.deleteFile(beat.getAssetId());
             if (beat.getWaveformKey() != null) {
                 storageService.deleteFile(beat.getWaveformKey());
             }
         } catch (Exception e) {
-            log.warn("Failed to delete files from S3 for beat {}: {}", id, e.getMessage());
+            log.warn("Failed to delete files from cloud for beat {}: {}", id, e.getMessage());
             // Continue to delete metadata
         }
 

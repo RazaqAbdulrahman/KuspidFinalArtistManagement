@@ -23,12 +23,12 @@ public class BeatService {
     private final AiClient aiClient;
 
     public Beat uploadBeat(String title, String artistId, MultipartFile file) {
-        String s3Key = storageService.uploadFile(file);
+        String cloudKey = storageService.uploadFile(file);
 
         Beat beat = Beat.builder()
                 .title(title)
                 .artistId(artistId)
-                .s3Key(s3Key)
+                .assetId(cloudKey)
                 .fileName(file.getOriginalFilename())
                 .fileSize(file.getSize())
                 .analysisStatus(Beat.AnalysisStatus.PROCESSING)
@@ -50,13 +50,13 @@ public class BeatService {
 
         try {
             // 1. Generate Waveform using FFmpeg
-            String waveformKey = generateWaveform(file, beat.getS3Key());
+            String waveformKey = generateWaveform(file, beat.getAssetId());
             beat.setWaveformKey(waveformKey);
             repository.save(beat);
 
             // 2. Trigger AI analysis
             try {
-                var analysis = aiClient.analyzeBeat(beat.getS3Key());
+                var analysis = aiClient.analyzeBeat(beat.getAssetId());
                 if (!"DEGRADED".equals(analysis.getStatus())) {
                     beat.setBpm(analysis.getBpm());
                     beat.setMusicalKey(analysis.getKey());
@@ -77,7 +77,7 @@ public class BeatService {
         repository.save(beat);
     }
 
-    private String generateWaveform(MultipartFile file, String s3Key) {
+    private String generateWaveform(MultipartFile file, String cloudKey) {
         File tempInput = null;
         File tempOutput = null;
         try {
@@ -97,8 +97,8 @@ public class BeatService {
             int exitCode = process.waitFor();
 
             if (exitCode == 0) {
-                String waveformS3Key = s3Key + ".waveform.png";
-                return storageService.uploadFile(tempOutput, waveformS3Key);
+                String waveformCloudKey = cloudKey + ".waveform.png";
+                return storageService.uploadFile(tempOutput, waveformCloudKey);
             }
         } catch (Exception e) {
             log.error("Failed to generate waveform: {}", e.getMessage());
@@ -112,18 +112,32 @@ public class BeatService {
     }
 
     public List<Beat> getAllBeats() {
-        return repository.findAll();
+        return repository.findAll().stream()
+                .map(this::enrichBeatUrl)
+                .toList();
     }
 
     public Beat getBeatById(Long id) {
-        return repository.findById(id).orElseThrow();
+        return repository.findById(id)
+                .map(this::enrichBeatUrl)
+                .orElseThrow(() -> new RuntimeException("Beat not found with id: " + id));
+    }
+
+    private Beat enrichBeatUrl(Beat beat) {
+        if (beat.getAssetId() != null) {
+            beat.setBeatUrl(storageService.getAssetUrl(beat.getAssetId()));
+        }
+        if (beat.getWaveformKey() != null) {
+            beat.setWaveformUrl(storageService.getAssetUrl(beat.getWaveformKey()));
+        }
+        return beat;
     }
 
     public void deleteBeat(Long id) {
         Beat beat = getBeatById(id);
-        storageService.deleteFile(beat.getS3Key());
+        storageService.deleteAsset(beat.getAssetId());
         if (beat.getWaveformKey() != null) {
-            storageService.deleteFile(beat.getWaveformKey());
+            storageService.deleteAsset(beat.getWaveformKey());
         }
         repository.delete(beat);
     }
